@@ -990,8 +990,21 @@ Sound_PlayMoreSFX:
 		tst.b	SMPS_RAM.f_fadein_flag(a6)		; is music being faded in?
 		bne.w	Sound_PlaySFX.clear_sndprio		; exit if it is
 
-		; Spin Dash rev effect goes here...
-
+		clr.b	(v_spindash_sfx_flag).w			; clear rev flag
+		cmpi.b	#sfx_SpinDash,d7			; is the Spin Dash sound being played?
+		bne.s	.notSpinDash				; if not, branch
+		moveq	#0,d1					; start from the base pitch
+		tst.b	(v_spindash_sfx_timer).w		; has the rev timer run out?
+		beq.s	.setPitch				; if yes, use the base pitch
+		move.b	(v_spindash_sfx_pitch).w,d1		; get current rev pitch
+		cmpi.b	#12,d1					; is the pitch at its maximum?
+		bhs.s	.setPitch				; if yes, branch
+		addq.b	#1,d1					; raise the pitch
+.setPitch:
+		move.b	d1,(v_spindash_sfx_pitch).w		; save the pitch
+		move.b	#1,(v_spindash_sfx_flag).w		; set rev flag
+		move.b	#60,(v_spindash_sfx_timer).w		; reset rev timer (1 second)
+.notSpinDash:
 		movea.l	(Go_ExtSoundIndex).l,a0			; use Extended Sound Index
 		subi.b	#ext__First,d7				; make it 0-based
 		bra.w	Sound_PlaySFX.sfx_common		; remaining code is identical to default sfx logic
@@ -1009,21 +1022,7 @@ Sound_PlaySFX:
 		tst.b	SMPS_RAM.f_fadein_flag(a6)		; is music being faded in?
 		bne.w	.clear_sndprio				; exit if it is
 
-		clr.b	(v_spindash_sfx_flag).w			; clear rev flag
-		cmpi.b	#sfx_SpinDash,d7			; is the Spin Dash sound being played?
-		bne.s	.sfx_notSDash				; if not, branch
-		moveq	#0,d1					; start from the base pitch
-		tst.b	(v_spindash_sfx_timer).w		; has the rev timer run out?
-		beq.s	.sfx_dashPitch				; if yes, use the base pitch
-		move.b	(v_spindash_sfx_pitch).w,d1		; get current rev pitch
-		cmpi.b	#12,d1					; is the pitch at its maximum?
-		bhs.s	.sfx_dashPitch				; if yes, branch
-		addq.b	#1,d1					; raise the pitch
-.sfx_dashPitch:
-		move.b	d1,(v_spindash_sfx_pitch).w		; save the pitch
-		move.b	#1,(v_spindash_sfx_flag).w		; set rev flag
-		move.b	#60,(v_spindash_sfx_timer).w		; reset rev timer (1 second)
-.sfx_notSDash:
+		clr.b	(v_spindash_sfx_flag).w			; normal sfx never use the Spin Dash rev pitch
 
 		cmpi.b	#sfx_Ring,d7				; is ring sound effect played?
 		bne.s	.sfx_notRing				; if not, branch
